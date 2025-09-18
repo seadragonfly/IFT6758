@@ -11,10 +11,8 @@ def city_lowest_precipitation(totals: pd.DataFrame) -> str:
     Given a dataframe where each row represents a city and each column represents a month
     from January to December of a particular year, return the city with the lowest total precipitation.
     """
-
-    # TODO
-
-    return None
+    output=totals.sum(axis=1).idxmin()
+    return output
 
 
 def avg_precipitation_month(totals: pd.DataFrame, counts: pd.DataFrame) -> pd.DataFrame:
@@ -23,9 +21,9 @@ def avg_precipitation_month(totals: pd.DataFrame, counts: pd.DataFrame) -> pd.Da
     each month, divided by the total observations for that month.
     """
 
-    # TODO
+    output=pd.DataFrame(totals.sum(axis=0)/counts.sum(axis=0))
 
-    return None
+    return output
 
 
 def avg_precipitation_city(totals: pd.DataFrame, counts: pd.DataFrame) -> pd.DataFrame:
@@ -34,9 +32,8 @@ Do the same for cities: give the average precipitation (average daily precipitat
 for each city.
     """
 
-    # TODO
-
-    return None
+    output=pd.DataFrame(totals.sum(axis=1)/counts.sum(axis=1))
+    return output
 
 
 # pas de trimestriel car c'est un peu pénible

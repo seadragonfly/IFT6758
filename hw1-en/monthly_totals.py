@@ -26,15 +26,14 @@ def date_to_month(d: pd.Timestamp) -> str:
 
 
 def pivot_months_pandas(data: pd.DataFrame) -> Tuple[pd.DataFrame, pd.DataFrame]:
-    """
-    Create monthly precipitation totals for each station in the dataset.
 
-    This should use Pandas methods to manipulate the data. Round the precipitation (mm) to the first
-    decimal place.
-    """
     monthly, counts = None, None
 
-    # TODO
+    data["month"]=data["date"].apply(date_to_month)
+    x=data.groupby(["name", "month"])["precipitation"].sum().reset_index()
+    monthly=x.pivot(index="name", columns="month", values="precipitation")
+    y=data.groupby(["name", "month"])["precipitation"].count().reset_index()
+    counts=y.pivot(index="name", columns="month", values="precipitation")
 
     return monthly, counts
 
@@ -96,30 +95,10 @@ def pivot_months_loops(data: pd.DataFrame) -> Tuple[pd.DataFrame, pd.DataFrame]:
 
 
 def compute_pairwise(df: pd.DataFrame, func: callable) -> pd.DataFrame:
-    """
-    Complete this function, which takes a dataframe and a function from a pair of columns in the dataframe
-    as input and returns a dataframe containing the function applied to
 
-    each pair of rows in the dataframe**.
-
-    To do this, we'll use the `pdist` and `squareform` functions from the `scipy.spatial` library.
-    - https://docs.scipy.org/doc/scipy/reference/generated/scipy.spatial.distance.pdist.html
-    - https://docs.scipy.org/doc/scipy/reference/generated/scipy.spatial.distance.squareform.html
-
-    Tip: Make sure the input dataframe has the station name as the index, not a number! You can do this by rotating
-    the dataframe. It should look like this snippet:
-
-    ```
-                             column1     column2
-    name
-    BURNABY SIMON FRASER U   ...        ...
-    CALGARY INTL A           ...        ...
-    ```
-    """
-    new_df = None
-
-    # TODO
-    # use scipy.spatial.pdist and scipy.spatial.squareform
+    distances = pdist(df, metric=func)
+    distances_square = squareform(distances)                 
+    new_df=pd.DataFrame(distances_square, index=df.index, columns=df.index)
 
     return new_df
 
@@ -139,77 +118,49 @@ def geodesic(latlon1, latlon2) -> int:
 
 
 def compute_pairwise_distances(df: pd.DataFrame) -> pd.DataFrame:
-    """
-    Given the `compute_pairwise()` and `geodesic()` functions defined above,
-    compute the distance between each of the stations. The input must be the original raw data frame
-    loaded from the CSV.
-    """
-    new_df = None
 
-    # TODO: rotate the dataframe so that you have lat/lon as columns and names as indexes
+    columns_to_keep = ["name", "latitude", "longitude"]
+    new_df = df[columns_to_keep]
+    new_df = new_df.drop_duplicates(subset="name")
+    new_df=new_df.set_index("name")
+    new_df= compute_pairwise(new_df,geodesic)
 
     return new_df
 
 
 def correlation(u, v) -> float:
-    """
-    Calculate the correlation between two data sets
-    - https://en.wikipedia.org/wiki/Correlation
-
-    More precisely, the equation for Pearson's product-moment coefficient is:
-
-        corr = E[(X - x_avg) * (Y - y_avg)] / (x_std * y_std)
-
-    """
     corr = None
 
-    # get proper indices (filter out NaNs; '~' is logical 'not')
     idx_u = ~pd.isna(u)
     idx_v = ~pd.isna(v)
     idx = idx_u & idx_v
 
-    # TODO: calculate the mean and standard deviation of valid entries
+    u_filter = u[idx]
+    v_filter = v[idx]    
+    
+    u_mean = np.mean(u_filter)
+    v_mean = np.mean(v_filter)
+    u_std  = np.std(u_filter)
+    v_std  = np.std(v_filter)
 
-    # TODO: calculate the correlation
+    cov = np.mean((u_filter - u_mean) * (v_filter- v_mean))
+    corr = cov / (u_std * v_std)
 
     return corr
 
 
 def compute_pairwise_correlation(df: pd.DataFrame) -> pd.DataFrame:
-    """
 
-    Given the `compute_pairwise()` and `correlation()` functions completed above, calculate the
-    pairwise correlation of daily precipitation between stations. The goal here is to see if there is a
-    correlation of precipitation between stations. Ideally, we would expect stations closer
-    to each other to have a higher correlation. The input should be the original raw dataframe loaded
-    from the CSV.
-
-    Note that you will likely have a diagonal of zeros when it should be ones—this is fine
-    for the purposes of this assignment. `pdist` expects the metric function to be a proper metric,
-    that is, the distance between an element and itself is zero.
-
-    """
-    new_df = None
-
-    # TODO: rotate the dataframe so that you have a column for each date, and the station names are the indices.
+    daily=df.pivot(index="name", columns="date", values="precipitation")
+    new_df = compute_pairwise(daily, correlation)
 
     return new_df
 
 
 def compute_pairwise_correlation_pandas(df: pd.DataFrame) -> pd.DataFrame:
-    """
-    Surprise! Pandas can actually do the correlation calculation for you in a single function call.
-
-    You'll pivot the table slightly differently, then make a single function call on the dataframe:
-    - https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.corr.html
-
-    You should get the same result as you did for `compute_pairwise_correlation()`, with
-    the exception of ones (correctly) along the diagonal.
-    """
     new_df = None
-
-    # TODO
-
+    daily=df.pivot(index="date", columns="name", values="precipitation")
+    new_df = daily.corr(method="pearson")
     return new_df
 
 
