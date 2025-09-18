@@ -142,6 +142,8 @@ def correlation(u, v) -> float:
     v_mean = np.mean(v_filter)
     u_std  = np.std(u_filter)
     v_std  = np.std(v_filter)
+    if u_std == 0 or v_std == 0:
+        return float('nan')
 
     cov = np.mean((u_filter - u_mean) * (v_filter- v_mean))
     corr = cov / (u_std * v_std)
